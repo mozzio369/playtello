@@ -24,23 +24,11 @@ class Tello:
     CMD_REQ_IFRAME =(0xcc, 0x58, 0x00, 0x7c, 0x60, 0x25, 0x00, 0x00, 0x00, 0x6c, 0x95)
     CMD_TAKEOFF = (0xcc, 0x58, 0x00, 0x7c, 0x68, 0x54, 0x00, 0xe4, 0x01, 0xc2, 0x16)
     CMD_LAND = (0xcc, 0x60, 0x00, 0x27, 0x68, 0x55, 0x00, 0xe5, 0x01, 0x00, 0xba, 0xc7)
-    CMD_HOVER = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0x00, 0x01, 0x08)
-    CMD_UP_H = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0xa5, 0x01, 0x08)
-    CMD_UP_L = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0x04, 0xa0, 0x52, 0x01, 0x08)
-    CMD_DOWN_H = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0x5b, 0x00, 0x08)
-    CMD_DOWN_L = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0x04, 0xa0, 0xad, 0x00, 0x08)
-    CMD_CCW_H = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0x00, 0xd9, 0x02)
-    CMD_CCW_L = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0x00, 0x6d, 0x05)
-    CMD_CW_H = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0x00, 0x29, 0x0d)
-    CMD_CW_L = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0x00, 0x95, 0x0a)
-    CMD_FWD_H = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0xa4, 0x34, 0x00, 0x01, 0x08)
-    CMD_FWD_L = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0x54, 0x2a, 0x00, 0x01, 0x08)
-    CMD_BACK_H = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0x64, 0x0b, 0x00, 0x01, 0x08)
-    CMD_BACK_L = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x00, 0xb4, 0x15, 0x00, 0x01, 0x08)
-    CMD_LEFT_H = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x6c, 0x01, 0x20, 0x00, 0x01, 0x08)
-    CMD_LEFT_L = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0xb6, 0x02, 0x20, 0x00, 0x01, 0x08)
-    CMD_RIGHT_H = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x94, 0x06, 0x20, 0x00, 0x01, 0x08)
-    CMD_RIGHT_L = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00, 0x4a, 0x05, 0x20, 0x00, 0x01, 0x08)
+    CMD_FLIGHT = (0xcc, 0xb0, 0x00, 0x7f, 0x60, 0x50, 0x00, 0x00, 0x00)
+    STICK_HOVER = 1024
+    STICK_H = 660
+    STICK_M = 330
+    STICK_L = 80
 
     # Format
     S11 = Struct("!BBBBBBBBBBB")
@@ -97,7 +85,11 @@ class Tello:
         self.in_flight = False
 
         # Initialize Flight Command
-        self.flight_cmd = self.CMD_HOVER
+        self.mode = 0
+        self.yaw = self.STICK_HOVER
+        self.thr = self.STICK_HOVER
+        self.pitch = self.STICK_HOVER
+        self.roll = self.STICK_HOVER
 
         # Start Sending Flight Command
         self.thread_flight_ctrl = Thread(target=self._flight_ctrl)
@@ -110,6 +102,15 @@ class Tello:
         # Start Forwarding Video
         self.thread_fwd_video = Thread(target=self._fwd_video)
         self.thread_fwd_video.start()
+
+        # Initialize Tracking Flag
+        self.mode_detect = False
+        self.is_detect = False
+        self.mode_tracking = False
+
+        # Start Tracking Timer
+        self.thread_timer_detect = Thread(target=self._timer_detect)
+        self.thread_timer_detect.start()
 
     def _echo_off(self):
         attr = termios.tcgetattr(self.fd)
@@ -131,43 +132,55 @@ class Tello:
     def _on_press(self, key):
         try:
             keyPressed = '{0}'.format(key.char)
-            if keyPressed == 'W':
-                self.flight_cmd = self.CMD_UP_H
-            elif keyPressed == 'w':
-                self.flight_cmd = self.CMD_UP_L
-            elif keyPressed == 'S':
-                self.flight_cmd = self.CMD_DOWN_H
-            elif keyPressed == 's':
-                self.flight_cmd = self.CMD_DOWN_L
-            elif keyPressed == 'A':
-                self.flight_cmd = self.CMD_CCW_H
-            elif keyPressed == 'a':
-                self.flight_cmd = self.CMD_CCW_L
-            elif keyPressed == 'D':
-                self.flight_cmd = self.CMD_CW_H
-            elif keyPressed == 'd':
-                self.flight_cmd = self.CMD_CW_L
-            elif keyPressed == 'I':
-                self.flight_cmd = self.CMD_FWD_H
-            elif keyPressed == 'i':
-                self.flight_cmd = self.CMD_FWD_L
-            elif keyPressed == 'K':
-                self.flight_cmd = self.CMD_BACK_H
-            elif keyPressed == 'k':
-                self.flight_cmd = self.CMD_BACK_L
-            elif keyPressed == 'J':
-                self.flight_cmd = self.CMD_LEFT_H
-            elif keyPressed == 'j':
-                self.flight_cmd = self.CMD_LEFT_L
-            elif keyPressed == 'L':
-                self.flight_cmd = self.CMD_RIGHT_H
-            elif keyPressed == 'l':
-                self.flight_cmd = self.CMD_RIGHT_L
-            else:
-                self.flight_cmd = self.CMD_HOVER 
+            if not self.mode_detect and keyPressed == '9':
+                self.mode_detect = True
+            elif self.mode_detect and keyPressed == '9':
+                self.mode_detect = False
+                self.mode_tracking = False
+            elif self.mode_detect and not self.mode_tracking and keyPressed == '0':
+                self.mode_tracking = True
+            elif self.mode_detect and self.mode_tracking and keyPressed == '0':
+                self.mode_tracking = False
+            elif not self.mode_tracking:
+                if keyPressed == 'W':
+                    self.thr = self.STICK_HOVER + self.STICK_H
+                elif keyPressed == 'w':
+                    self.thr = self.STICK_HOVER + self.STICK_M
+                elif keyPressed == 'S':
+                    self.thr = self.STICK_HOVER - self.STICK_H
+                elif keyPressed == 's':
+                    self.thr = self.STICK_HOVER - self.STICK_M
+                elif keyPressed == 'A':
+                    self.yaw = self.STICK_HOVER - self.STICK_H
+                elif keyPressed == 'a':
+                    self.yaw = self.STICK_HOVER - self.STICK_M
+                elif keyPressed == 'D':
+                    self.yaw = self.STICK_HOVER + self.STICK_H
+                elif keyPressed == 'd':
+                    self.yaw = self.STICK_HOVER + self.STICK_M
+                elif keyPressed == 'I':
+                    self.pitch = self.STICK_HOVER + self.STICK_H
+                elif keyPressed == 'i':
+                    self.pitch = self.STICK_HOVER + self.STICK_M
+                elif keyPressed == 'K':
+                    self.pitch = self.STICK_HOVER - self.STICK_H
+                elif keyPressed == 'k':
+                    self.pitch = self.STICK_HOVER - self.STICK_M
+                elif keyPressed == 'J':
+                    self.roll = self.STICK_HOVER - self.STICK_H
+                elif keyPressed == 'j':
+                    self.roll = self.STICK_HOVER - self.STICK_M
+                elif keyPressed == 'L':
+                    self.roll = self.STICK_HOVER + self.STICK_H
+                elif keyPressed == 'l':
+                    self.roll = self.STICK_HOVER + self.STICK_M
+                else:
+                    self.thr = self.STICK_HOVER
+                    self.yaw = self.STICK_HOVER
+                    self.pitch = self.STICK_HOVER
+                    self.roll = self.STICK_HOVER
         except AttributeError:
             keyPressed = '{0}'.format(key)
-            self.flight_cmd = self.CMD_HOVER
             if not self.in_flight and keyPressed == 'Key.space':
                 cmd = list(self.CMD_TAKEOFF)
                 self._cmd_tx(cmd)
@@ -184,20 +197,29 @@ class Tello:
                     if clearBuffer == '\n':
                         break
                 return False
-            elif keyPressed == 'Key.up':
-                self.flight_cmd = self.CMD_FWD_L
-            elif keyPressed == 'Key.down':
-                self.flight_cmd = self.CMD_BACK_L
-            elif keyPressed == 'Key.left':
-                self.flight_cmd = self.CMD_LEFT_L
-            elif keyPressed == 'Key.right':
-                self.flight_cmd = self.CMD_RIGHT_L
-            else:
-                self.flight_cmd = self.CMD_HOVER
+            elif not self.mode_tracking:
+                if keyPressed == 'Key.up':
+                    self.pitch = self.STICK_HOVER + self.STICK_M
+                elif keyPressed == 'Key.down':
+                    self.pitch = self.STICK_HOVER - self.STICK_M
+                elif keyPressed == 'Key.left':
+                    self.roll = self.STICK_HOVER - self.STICK_M
+                elif keyPressed == 'Key.right':
+                    self.roll = self.STICK_HOVER + self.STICK_M
+                else:
+                    self.thr = self.STICK_HOVER
+                    self.yaw = self.STICK_HOVER
+                    self.pitch = self.STICK_HOVER
+                    self.roll = self.STICK_HOVER
             
     def _on_release(self, key):
-        self.flight_cmd = self.CMD_HOVER
-        return
+        if not self.mode_tracking:
+            self.thr = self.STICK_HOVER
+            self.yaw = self.STICK_HOVER
+            self.pitch = self.STICK_HOVER
+            self.roll = self.STICK_HOVER
+        else:
+            return
 
     def _cmd_rx(self):
         while True:
@@ -212,7 +234,6 @@ class Tello:
         if type(cmd) == bytes:
             cmd = cmd
             self.sock_cmd.sendto(cmd, self.addr_cmd_tx)
-            #print('Tx: ' + str(cmd))
         elif type(cmd) == list:
             if len(cmd) == 11:
                 s = self.S11
@@ -229,7 +250,10 @@ class Tello:
                 #print('Tx: ' + str(cmd))
 
     def _flight_ctrl(self):
-        cmd = list(self.flight_cmd)
+        c = (self.mode<<44) + (self.yaw<<33) + (self.thr<<22) + (self.pitch<<11) + (self.roll)
+        cmd = list(self.CMD_FLIGHT)
+        for i in range(0,6):
+            cmd.append(c>>(8*i)&0xff)
         now = datetime.datetime.now()
         h = now.hour
         m = now.minute
@@ -292,6 +316,12 @@ class Tello:
                     self.sock_fwd.sendto(data[2:size], self.addr_fwd)
         self.sock_video.close()
         self.sock_fwd.close()
+
+    def _timer_detect(self):
+        self.is_detect = True
+        if not self.stop_drone:
+            t = Timer(2, self._timer_detect)
+            t.start()
 
     def _calc_crc16(self, buf, size):
         i = 0
