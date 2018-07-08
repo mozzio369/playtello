@@ -42,7 +42,7 @@ if __name__ == '__main__':
                             dy = y + h/2 - CY
                         else:
                             d = LB
-                        cv2.putText(frame, ' D:' + str(d) + 'cm X:' + str(dx) + 'px Y:' + str(dy) + 'px', (270, 718), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1, cv2.LINE_AA)
+                        cv2.putText(frame, ' D:' + str(d) + 'cm X:' + str(dx) + 'px Y:' + str(dy) + 'px', (360, 710), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, cv2.LINE_AA)
                         cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
                         if drone.mode_tracking:
                             if (d - LB) > 15:
@@ -65,7 +65,7 @@ if __name__ == '__main__':
                                 drone.thr = drone.STICK_HOVER
                 except NameError:
                     break 
-            cv2.putText(frame, 'Detecting:' + str(drone.mode_detect) + ' Tracking:' + str(drone.mode_tracking), (5, 718), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(frame, 'Detecting:' + str(drone.mode_detect) + ' Tracking:' + str(drone.mode_tracking), (5, 710), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1, cv2.LINE_AA)
             cv2.imshow("frame", frame)
             k = cv2.waitKey(1)
             if drone.stop_drone:
