@@ -28,7 +28,7 @@ class Tello:
     STICK_HOVER = 1024
     STICK_H = 660
     STICK_M = 330
-    STICK_L = 80
+    STICK_L = 60
 
     # Format
     S11 = Struct("!11B")
@@ -77,6 +77,9 @@ class Tello:
         # Cancel Echo
         self._echo_off()
 
+        # Initialize Tracking Interval
+        self.tracking_interval = 2
+
         # Start Key Listener
         self.thread_key_listener = Thread(target=self._key_listener)
         self.thread_key_listener.start()
@@ -104,9 +107,9 @@ class Tello:
         self.thread_fwd_video.start()
 
         # Initialize Tracking Flag
-        self.mode_detect = False
+        self.is_tracking = False
         self.is_detect = False
-        self.mode_tracking = False
+        self.is_autopilot = False
 
         # Start Tracking Timer
         self.thread_timer_detect = Thread(target=self._timer_detect)
@@ -132,16 +135,16 @@ class Tello:
     def _on_press(self, key):
         try:
             keyPressed = '{0}'.format(key.char)
-            if not self.mode_detect and keyPressed == '9':
-                self.mode_detect = True
-            elif self.mode_detect and keyPressed == '9':
-                self.mode_detect = False
-                self.mode_tracking = False
-            elif self.mode_detect and not self.mode_tracking and keyPressed == '0':
-                self.mode_tracking = True
-            elif self.mode_detect and self.mode_tracking and keyPressed == '0':
-                self.mode_tracking = False
-            elif not self.mode_tracking:
+            if not self.is_tracking and keyPressed == '9':
+                self.is_tracking = True
+            elif self.is_tracking and keyPressed == '9':
+                self.is_tracking = False
+                self.is_autopilot = False
+            elif self.is_tracking and not self.is_autopilot and keyPressed == '0':
+                self.is_autopilot = True
+            elif self.is_tracking and self.is_autopilot and keyPressed == '0':
+                self.is_autopilot = False
+            elif not self.is_autopilot:
                 if keyPressed == 'W':
                     self.thr = self.STICK_HOVER + self.STICK_H
                 elif keyPressed == 'w':
@@ -197,7 +200,7 @@ class Tello:
                     if clearBuffer == '\n':
                         break
                 return False
-            elif not self.mode_tracking:
+            elif not self.is_autopilot:
                 if keyPressed == 'Key.up':
                     self.pitch = self.STICK_HOVER + self.STICK_M
                 elif keyPressed == 'Key.down':
@@ -213,7 +216,7 @@ class Tello:
                     self.roll = self.STICK_HOVER
             
     def _on_release(self, key):
-        if not self.mode_tracking:
+        if not self.is_autopilot:
             self.thr = self.STICK_HOVER
             self.yaw = self.STICK_HOVER
             self.pitch = self.STICK_HOVER
@@ -320,7 +323,7 @@ class Tello:
     def _timer_detect(self):
         self.is_detect = True
         if not self.stop_drone:
-            t = Timer(2, self._timer_detect)
+            t = Timer(self.tracking_interval, self._timer_detect)
             t.start()
 
     def _calc_crc16(self, buf, size):
